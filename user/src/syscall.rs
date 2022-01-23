@@ -19,6 +19,9 @@ const SYSCALL_SEND_MSG: usize = 601;
 const SYSCALL_SET_TIMER: usize = 602;
 const SYSCALL_CLAIM_EXT_INT: usize = 603;
 const SYSCALL_SET_EXT_INT_ENABLE: usize = 604;
+const SYSCALL_UIPI_SENDER_CTL: usize = 700;
+const SYSCALL_UIPI_RECEIVER_CTL: usize = 701;
+const SYSCALL_UIPI_CONNECTION_CTL: usize = 702;
 
 fn syscall(id: usize, args: [usize; 3]) -> isize {
     let mut ret: isize;
@@ -115,4 +118,25 @@ pub fn sys_claim_ext_int(device_id: usize) -> isize {
 
 pub fn sys_set_ext_int_enable(device_id: usize, enable: usize) -> isize {
     syscall(SYSCALL_SET_EXT_INT_ENABLE, [device_id as usize, enable, 0])
+}
+
+pub fn sys_uipi_sender_ctl(flags: usize, sender_id: u32, buf: *mut u8) -> isize {
+    syscall(
+        SYSCALL_UIPI_SENDER_CTL,
+        [flags, sender_id as usize, buf as usize],
+    )
+}
+
+pub fn sys_uipi_receiver_ctl(flags: usize, receiver_id: u32, buf: *mut u8) -> isize {
+    syscall(
+        SYSCALL_UIPI_RECEIVER_CTL,
+        [flags, receiver_id as usize, buf as usize],
+    )
+}
+
+pub fn sys_uipi_connection_ctl(sender_id: u32, receiver_id: u32, connected: bool) -> isize {
+    syscall(
+        SYSCALL_UIPI_CONNECTION_CTL,
+        [sender_id as usize, receiver_id as usize, connected as usize],
+    )
 }

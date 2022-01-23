@@ -1,5 +1,5 @@
 use crate::trap::trap_return;
-use riscv::register::{uie, uip};
+use riscv::register::{uie, uip, utvec};
 
 #[repr(C)]
 #[derive(Debug)]
@@ -9,7 +9,7 @@ pub struct TaskContext {
     pub uie: uie::Uie,
     pub uip: uip::Uip,
     pub uepc: usize,
-    pub utvec: usize,
+    pub utvec: utvec::Utvec,
     pub utval: usize,
     pub ucause: usize,
 }
@@ -22,7 +22,7 @@ impl TaskContext {
             uie: uie::read(),
             uip: uip::read(),
             uepc: 0,
-            utvec: 0,
+            utvec: utvec::read(),
             utval: 0,
             ucause: 0,
         }

@@ -4,16 +4,22 @@ use crate::config::CPU_NUM;
 use crate::plic::Plic;
 use crate::task::hart_id;
 use crate::{mm::PhysPageNum, plic::get_context};
+use alloc::sync::Arc;
 use alloc::{collections::BTreeMap, vec::Vec};
 use heapless::spsc::Queue;
 use lazy_static::*;
 use spin::Mutex;
+
+use super::uipi::{ReceiverHandle, ReceiverId, SenderHandle, SenderId, ReceiverUintcId};
 
 pub type UserTrapQueue = Queue<UserTrapRecord, MAX_USER_TRAP_NUM>;
 #[derive(Clone)]
 pub struct UserTrapInfo {
     pub user_trap_buffer_ppn: PhysPageNum,
     pub devices: Vec<(u16, bool)>,
+    pub uipi_senders: BTreeMap<SenderId, Arc<Mutex<SenderHandle>>>,
+    pub uipi_receivers: BTreeMap<ReceiverId, Arc<Mutex<ReceiverHandle>>>,
+    pub listening_receiver_uintc_id: Option<ReceiverUintcId>,
 }
 
 #[repr(C)]

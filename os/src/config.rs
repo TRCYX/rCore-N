@@ -16,6 +16,12 @@ pub const TRAP_CONTEXT: usize = TRAMPOLINE - PAGE_SIZE;
 pub const USER_TRAP_BUFFER: usize = TRAP_CONTEXT - PAGE_SIZE;
 
 #[cfg(feature = "board_qemu")]
+pub const UINTC_BASE: usize = 0x4000000;
+
+pub const UINTC_MAX_SENDER: usize = 64;
+pub const UINTC_MAX_RECEIVER: usize = 64;
+
+#[cfg(feature = "board_qemu")]
 pub const CLOCK_FREQ: usize = 12500000;
 
 #[cfg(feature = "board_lrv")]

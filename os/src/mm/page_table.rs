@@ -3,6 +3,8 @@ use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use bitflags::*;
+use core::mem::size_of;
+use core::slice::{from_raw_parts, from_raw_parts_mut};
 
 bitflags! {
     pub struct PTEFlags: u8 {
@@ -52,6 +54,7 @@ impl PageTableEntry {
     }
 }
 
+#[derive(Debug)]
 pub struct PageTable {
     root_ppn: PhysPageNum,
     frames: Vec<FrameTracker>,
@@ -229,6 +232,47 @@ impl UserBuffer {
             total += b.len();
         }
         total
+    }
+
+    pub fn write_buffer(&mut self, src: *const u8, len: usize) -> Option<()> {
+        let mut src = src;
+        let mut len = len;
+
+        for d in &mut self.buffers {
+            if len > d.len() {
+                d.copy_from_slice(unsafe { from_raw_parts(src, d.len()) });
+            } else {
+                d[..len].copy_from_slice(unsafe { from_raw_parts(src, len) });
+                return Some(());
+            }
+            src = unsafe { src.offset(d.len() as isize) };
+            len -= d.len();
+        }
+
+        if len == 0 {
+            Some(())
+        } else {
+            None
+        }
+    }
+
+    pub fn write<T>(&mut self, src: &T) -> Option<()> {
+        self.write_buffer(src as *const T as *const u8, size_of::<T>())
+    }
+
+    pub fn read_buffer(&self, dst: *mut u8, len: usize) -> Option<()> {
+        let mut dst = dst;
+        let mut len = len;
+        for s in &self.buffers {
+            if len < s.len() {
+                None?;
+            }
+            (unsafe { from_raw_parts_mut(dst, s.len()) }).copy_from_slice(s);
+            dst = unsafe { dst.offset(s.len() as isize) };
+            len -= s.len();
+        }
+
+        Some(())
     }
 }
 

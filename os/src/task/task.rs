@@ -2,6 +2,7 @@ use super::TaskContext;
 use super::{pid_alloc, KernelStack, PidHandle};
 use crate::fs::{File, MailBox, Serial, Socket, Stdin, Stdout};
 use crate::mm::{translate_writable_va, MemorySet, PhysAddr, PhysPageNum, VirtAddr, KERNEL_SPACE};
+use crate::task::hart_id;
 use crate::task::pid::add_task_2_map;
 use crate::trap::{trap_handler, TrapContext, UserTrapInfo, UserTrapQueue};
 use crate::{
@@ -9,6 +10,7 @@ use crate::{
     loader::get_app_data_by_name,
     mm::translated_str,
 };
+use alloc::collections::BTreeMap;
 use alloc::sync::{Arc, Weak};
 use alloc::vec;
 use alloc::vec::Vec;
@@ -113,6 +115,9 @@ impl TaskControlBlockInner {
                 self.user_trap_info = Some(UserTrapInfo {
                     user_trap_buffer_ppn: PhysPageNum::from(PhysAddr::from(phys_addr)),
                     devices: Vec::new(),
+                    uipi_senders: BTreeMap::new(),
+                    uipi_receivers: BTreeMap::new(),
+                    listening_receiver_uintc_id: None,
                 });
                 let trap_queue = self.user_trap_info.as_mut().unwrap().get_trap_queue_mut();
                 *trap_queue = UserTrapQueue::new();
@@ -147,6 +152,20 @@ impl TaskControlBlockInner {
                         uip::set_usoft();
                     }
                 }
+                unsafe {
+                    crate::trap::uipi::set_listening_receiver_id(
+                        hart_id(),
+                        trap_info.listening_receiver_uintc_id,
+                    );
+                }
+            } else {
+                unsafe {
+                    crate::trap::uipi::set_listening_receiver_id(hart_id(), None);
+                }
+            }
+        } else {
+            unsafe {
+                crate::trap::uipi::set_listening_receiver_id(hart_id(), None);
             }
         }
     }

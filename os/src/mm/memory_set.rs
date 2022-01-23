@@ -2,7 +2,8 @@ use super::{frame_alloc, FrameTracker};
 use super::{PTEFlags, PageTable, PageTableEntry};
 use super::{PhysAddr, PhysPageNum, VirtAddr, VirtPageNum};
 use super::{StepByOne, VPNRange};
-use crate::config::{MEMORY_END, PAGE_SIZE, TRAMPOLINE, TRAP_CONTEXT, USER_STACK_SIZE};
+use crate::config::{MEMORY_END, PAGE_SIZE, TRAMPOLINE, TRAP_CONTEXT, UINTC_BASE, USER_STACK_SIZE};
+use crate::trap::uipi::UINTC_SIZE;
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
@@ -167,6 +168,16 @@ impl MemorySet {
             ),
             None,
         );
+        debug!("mapping uintc");
+        memory_set.push(
+            MapArea::new(
+                UINTC_BASE.into(),
+                (UINTC_BASE + UINTC_SIZE).into(),
+                MapType::Mmio,
+                MapPermission::R | MapPermission::W,
+            ),
+            None,
+        );
         unsafe { asm!("fence.i") }
         memory_set
     }
@@ -246,14 +257,21 @@ impl MemorySet {
         // copy data sections/trap_context/user_stack
         for area in user_space.areas.iter() {
             let new_area = MapArea::from_another(area);
+            let map_type = new_area.map_type;
             memory_set.push(new_area, None);
-            // copy data from another space
-            for vpn in area.vpn_range {
-                let src_ppn = user_space.translate(vpn).unwrap().ppn();
-                let dst_ppn = memory_set.translate(vpn).unwrap().ppn();
-                dst_ppn
-                    .get_bytes_array()
-                    .copy_from_slice(src_ppn.get_bytes_array());
+            match map_type {
+                MapType::Framed => {
+                    // copy data from another space
+                    for vpn in area.vpn_range {
+                        let src_ppn = user_space.translate(vpn).unwrap().ppn();
+                        let dst_ppn = memory_set.translate(vpn).unwrap().ppn();
+                        dst_ppn
+                            .get_bytes_array()
+                            .copy_from_slice(src_ppn.get_bytes_array());
+                    }
+                }
+                MapType::Mmio => (),
+                MapType::Identical => unreachable!(),
             }
         }
         unsafe { asm!("fence.i") }

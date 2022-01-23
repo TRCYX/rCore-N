@@ -1,5 +1,6 @@
 mod context;
 mod usertrap;
+pub mod uipi;
 
 use crate::config::{TRAMPOLINE, TRAP_CONTEXT};
 use crate::plic;
@@ -10,7 +11,6 @@ use crate::task::{
     suspend_current_and_run_next,
 };
 use crate::timer::{get_time_us, set_next_trigger, TIMER_MAP};
-use riscv::asm::ebreak;
 use riscv::register::{
     mtvec::TrapMode,
     scause::{self, Exception, Interrupt, Trap},

@@ -3,6 +3,8 @@ use crate::mm::UserBuffer;
 use crate::print;
 use crate::uart::{serial_getchar, serial_putchar};
 use core::fmt::{self, Write};
+use lazy_static::*;
+use spin::Mutex;
 
 pub struct Stdin;
 
@@ -26,14 +28,20 @@ impl File for Stdin {
     }
 }
 
+lazy_static! {
+    static ref STDOUT_MUTEX: Mutex<()> = Mutex::new(());
+}
+
 impl File for Stdout {
     fn read(&self, _user_buf: UserBuffer) -> Result<usize, isize> {
         panic!("Cannot read from stdout!");
     }
     fn write(&self, user_buf: UserBuffer) -> Result<usize, isize> {
+        let lock = STDOUT_MUTEX.lock();
         for buffer in user_buf.buffers.iter() {
             print!("{}", core::str::from_utf8(*buffer).unwrap());
         }
+        drop(lock);
         Ok(user_buf.len())
     }
 }

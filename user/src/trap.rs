@@ -8,6 +8,8 @@ pub const USER_TRAP_BUFFER: usize = TRAP_CONTEXT - PAGE_SIZE;
 const MAX_USER_TRAP_NUM: usize = 128;
 
 use rv_plic::PLIC;
+
+use crate::ipi::{Receiver, SenderId};
 pub const PLIC_BASE: usize = 0xc00_0000;
 pub const PLIC_PRIORITY_BIT: usize = 3;
 pub type Plic = PLIC<PLIC_BASE, PLIC_PRIORITY_BIT>;
@@ -79,6 +81,10 @@ pub fn user_trap_handler(cx: &mut UserTrapContext) -> &mut UserTrapContext {
                     timer_intr_handler(msg);
                 }
             }
+
+            while let Some(sender_id) = Receiver::receive() {
+                ipi_handler(sender_id);
+            }
         }
         ucause::Trap::Interrupt(ucause::Interrupt::UserExternal) => {
             while let Some(irq) = Plic::claim(get_context(hart_id(), 'U')) {
@@ -128,5 +134,14 @@ pub fn timer_intr_handler(time_us: usize) {
     println!(
         "[user trap default] user timer interrupt, time (us): {}",
         time_us
+    );
+}
+
+#[linkage = "weak"]
+#[no_mangle]
+pub fn ipi_handler(sender_id: SenderId) {
+    println!(
+        "[user trap default] user ipi, sender_id: {}",
+        sender_id.0.get()
     );
 }

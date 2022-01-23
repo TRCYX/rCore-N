@@ -20,12 +20,17 @@ const SYSCALL_SEND_MSG: usize = 601;
 const SYSCALL_SET_TIMER: usize = 602;
 const SYSCALL_CLAIM_EXT_INT: usize = 603;
 const SYSCALL_SET_EXT_INT_ENABLE: usize = 604;
+const SYSCALL_UIPI_SENDER_CTL: usize = 700;
+const SYSCALL_UIPI_RECEIVER_CTL: usize = 701;
+const SYSCALL_UIPI_CONNECTION_CTL: usize = 702;
 
 mod fs;
 mod process;
+mod uipi;
 
 use fs::*;
 use process::*;
+use uipi::*;
 
 pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
     trace!("syscall {}, args {:x?}", syscall_id, args);
@@ -52,6 +57,9 @@ pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
         SYSCALL_SET_TIMER => sys_set_timer(args[0]),
         SYSCALL_CLAIM_EXT_INT => sys_claim_ext_int(args[0]),
         SYSCALL_SET_EXT_INT_ENABLE => sys_set_ext_int_enable(args[0], args[1]),
+        SYSCALL_UIPI_SENDER_CTL => sys_uipi_sender_ctl(args[0], args[1], args[2] as *mut u8),
+        SYSCALL_UIPI_RECEIVER_CTL => sys_uipi_receiver_ctl(args[0], args[1], args[2] as *mut u8),
+        SYSCALL_UIPI_CONNECTION_CTL => sys_uipi_connection_ctl(args[0], args[1], args[2] != 0),
         _ => panic!("Unsupported syscall_id: {}", syscall_id),
     }
 }
